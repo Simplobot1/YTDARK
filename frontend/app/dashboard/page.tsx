@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getCanais, getCandidatos, getFila } from '@/lib/api'
 import { CanalCard } from '@/components/CanalCard'
 import { Button } from '@/components/ui/button'
-import { removeToken } from '@/lib/auth'
+import { removeToken, isAuthenticated } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Record<string, { prontos: number; emProducao: number; candidatos: number }>>({})
 
   useEffect(() => {
+    if (!isAuthenticated()) { router.push('/login'); return }
     getCanais().then(async ({ canais: ids }) => {
       setCanais(ids)
       const statsMap: typeof stats = {}

@@ -1,20 +1,23 @@
 'use client'
 import { useEffect, useState, useCallback, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { getCandidatos, getFila, minerar } from '@/lib/api'
 import { Video } from '@/lib/types'
 import { VideoRow } from '@/components/VideoRow'
 import { Button } from '@/components/ui/button'
+import { isAuthenticated } from '@/lib/auth'
 import Link from 'next/link'
 
 function CanalContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const canal = searchParams.get('id') || ''
   const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(false)
   const [minerando, setMinerando] = useState(false)
 
   const refresh = useCallback(async () => {
+    if (!isAuthenticated()) { router.push('/login'); return }
     if (!canal) return
     setLoading(true)
     try {

@@ -1,6 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { descobrirCanais } from '@/lib/api'
+import { isAuthenticated } from '@/lib/auth'
 import { CanalCandidato } from '@/lib/types'
 import { CanalCandidatoRow } from '@/components/CanalCandidatoRow'
 import { Button } from '@/components/ui/button'
@@ -10,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 
 export default function DescobertaPage() {
+  const router = useRouter()
+  useEffect(() => { if (!isAuthenticated()) router.push('/login') }, [router])
   const [estrategia, setEstrategia] = useState<'categoria' | 'seed'>('categoria')
   const [nicho, setNicho] = useState('personal finance')
   const [seed, setSeed] = useState('')
