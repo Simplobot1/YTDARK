@@ -27,10 +27,5 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ytdark
-          directory: frontend/out
+      # Deploy is handled automatically by Cloudflare Pages git integration
+      # Remove this workflow if Cloudflare Pages is connected directly to this repo
