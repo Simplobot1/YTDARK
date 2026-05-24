@@ -32,3 +32,15 @@ async def descobrir_canais(body: DescobertaRequest, _: str = Depends(verify_toke
         top_n=body.top_n,
         seed_channel=body.seed_channel,
     )
+
+
+from app.services.vidiq_scraper import buscar_keywords_vidiq
+
+class KeywordsRequest(BaseModel):
+    nicho: str
+    idioma: str = "en"
+
+@router.post("/canais/{canal_id}/keywords")
+async def keyword_research(canal_id: str, body: KeywordsRequest, _: str = Depends(verify_token)):
+    keywords = await buscar_keywords_vidiq(body.nicho, body.idioma)
+    return {"canal_id": canal_id, "nicho": body.nicho, "keywords": keywords}
