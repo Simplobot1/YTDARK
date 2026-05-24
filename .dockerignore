@@ -1,0 +1,11 @@
+.env
+credentials/
+temp/
+frontend/
+__pycache__/
+*.pyc
+.git/
+docs/
+tests/
+*.md
+setup_vps.py
