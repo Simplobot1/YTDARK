@@ -1,0 +1,46 @@
+{
+  "timeline": {
+    "background": "#FFFFFF",
+    "tracks": [
+      {
+        "clips": [
+          {
+            "asset": { "type": "audio", "src": "{{AUDIO_URL}}" },
+            "start": 0,
+            "length": "{{DURACAO}}"
+          }
+        ]
+      },
+      {
+        "clips": [
+          {
+            "asset": {
+              "type": "html",
+              "html": "<p style='font-family:Montserrat,sans-serif;font-size:48px;font-weight:bold;color:#FF6B35;text-align:center'>{{TITULO}}</p>",
+              "width": 1280,
+              "height": 200
+            },
+            "position": "center",
+            "start": 0,
+            "length": 5
+          }
+        ]
+      },
+      {
+        "clips": [
+          {
+            "asset": { "type": "image", "src": "{{THUMBNAIL_URL}}" },
+            "start": 0,
+            "length": "{{DURACAO}}",
+            "opacity": 0.1
+          }
+        ]
+      }
+    ]
+  },
+  "output": {
+    "format": "mp4",
+    "resolution": "hd",
+    "fps": 30
+  }
+}
