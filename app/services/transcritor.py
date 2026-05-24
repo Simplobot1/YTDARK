@@ -1,4 +1,3 @@
-import whisper
 import os
 
 _model = None
@@ -6,6 +5,7 @@ _model = None
 def _get_model():
     global _model
     if _model is None:
+        import whisper  # lazy import: avoids hard dependency at module load time
         _model = whisper.load_model("base")
     return _model
 
