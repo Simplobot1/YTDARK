@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.env
+credentials/*.json
+credentials/youtube_token.json
+temp/
+*.mp3
+*.mp4
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+.next/
+dist/
+out/
+*.egg-info/
+.DS_Store

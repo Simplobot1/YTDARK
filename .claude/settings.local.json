@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\\\Users\\\\ricar\\\\projetos\\\\YT DARK\\\\.claude\\\\hooks\\\\enforce-git-push-authority.cjs\"",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:\\\\Users\\\\ricar\\\\projetos\\\\YT DARK\\\\.claude\\\\hooks\\\\synapse-engine.cjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
