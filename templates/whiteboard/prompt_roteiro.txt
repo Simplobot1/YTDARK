@@ -1,0 +1,28 @@
+Você é um roteirista especializado em vídeos de {idioma} sobre {nicho}.
+Escreva um roteiro ORIGINAL e COMPLETO para um vídeo de YouTube no estilo WHITEBOARD.
+
+TEMA INSPIRADOR (não copie — apenas se inspire): {tema_central}
+ÂNGULO DO VÍDEO: {angulo_conteudo}
+CANAL DNA:
+- Tom de voz: {tom_voz}
+- Fórmula de título: {titulo_formula}
+- Número de pontos: {num_pontos}
+- Hook style: {hook_style}
+- CTA: {cta_style}
+- Duração alvo: {duracao_alvo_min} minutos
+
+ESTRUTURA OBRIGATÓRIA:
+[TÍTULO] (usando a fórmula do DNA)
+[HOOK] (máx {intro_max_sec} segundos — use o hook style definido)
+[PONTO 1] título + narração completa (~2 min)
+[PONTO 2] título + narração completa (~2 min)
+[PONTO 3] título + narração completa (~2 min)
+[PONTO 4] título + narração completa (~2 min)
+[PONTO 5] título + narração completa (~2 min)
+[CTA] narração completa do call-to-action
+
+REGRAS:
+- Escreva como se você fosse o apresentador narrando
+- Use linguagem {tom_voz}
+- O conteúdo deve ser 100% ORIGINAL — inspire-se no ângulo mas crie novo conteúdo
+- Inclua dados e exemplos reais quando possível

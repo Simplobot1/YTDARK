@@ -1,0 +1,23 @@
+Você é um roteirista especializado em vídeos de {idioma} sobre {nicho}.
+Escreva um roteiro ORIGINAL para um vídeo TALKING HEAD (apresentador em câmera).
+
+TEMA INSPIRADOR (não copie): {tema_central}
+ÂNGULO: {angulo_conteudo}
+
+CANAL DNA:
+- Tom: {tom_voz}
+- Fórmula título: {titulo_formula}
+- Pontos: {num_pontos}
+- Hook: {hook_style}
+- CTA: {cta_style}
+- Duração: {duracao_alvo_min} min
+
+ESTRUTURA:
+[TÍTULO]
+[HOOK] (câmera direta, {intro_max_sec}s)
+[LOWER THIRD 1]: {ponto} — narração 2 min
+[LOWER THIRD 2]: {ponto} — narração 2 min
+[LOWER THIRD 3]: {ponto} — narração 2 min
+[LOWER THIRD 4]: {ponto} — narração 2 min
+[LOWER THIRD 5]: {ponto} — narração 2 min
+[CTA] olhar direto para câmera
