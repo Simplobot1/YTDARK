@@ -1,0 +1,13 @@
+{
+  "estilo_visual": "whiteboard",
+  "tom_voz": "casual and educational",
+  "paleta_cores": ["#FF6B35", "#FFFFFF", "#2C3E50"],
+  "intro_max_sec": 30,
+  "hook_style": "bold question or shocking stat",
+  "num_pontos": 5,
+  "cta_style": "subscribe + next video suggestion",
+  "thumbnail_formula": "bold text left + visual right",
+  "thumbnail_fonte": "Montserrat Bold",
+  "titulo_formula": "[Number] Ways to [Benefit] (No [Common Excuse])",
+  "duracao_alvo_min": 12
+}

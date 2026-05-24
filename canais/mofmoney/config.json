@@ -1,0 +1,19 @@
+{
+  "canal_id": "mofmoney",
+  "youtube_handle": "@mofmoney",
+  "idioma": "en",
+  "nicho_keywords": ["personal finance", "investing", "passive income"],
+  "canais_fonte": ["@CasuallyFinance", "@nickinvestsUS"],
+  "tipo_video_padrao": "whiteboard",
+  "tipos_video_suportados": ["whiteboard", "talking_head"],
+  "elevenlabs_voice_id": "",
+  "google_sheets_id": "",
+  "google_drive_folder_id": "",
+  "filtros_mineracao": {
+    "min_views": 50000,
+    "max_dias": 30,
+    "duracao_min_min": 8.0,
+    "duracao_max_min": 20.0,
+    "sem_legenda_pt": true
+  }
+}
