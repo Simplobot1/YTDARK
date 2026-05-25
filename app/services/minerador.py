@@ -23,65 +23,91 @@ def _calc_video_score(views: int, likes: int, comments: int, duration_min: float
     dna_fit = 10.0 if 8 <= duration_min <= 20 else 5.0
     return round(views_ratio + engagement + keyword_fit + dna_fit, 2)
 
+def _fetch_and_filter_videos(service, query: str, source_label: str,
+                              config: CanalConfig, since: str,
+                              canal_avg_views: float) -> List[Video]:
+    f = config.filtros_mineracao
+    search_resp = service.search().list(
+        part="snippet",
+        q=query,
+        type="video",
+        order="viewCount",
+        publishedAfter=since,
+        videoDuration="medium",
+        relevanceLanguage=config.idioma,
+        maxResults=10,
+    ).execute()
+
+    video_ids = [i["id"]["videoId"] for i in search_resp.get("items", [])]
+    if not video_ids:
+        return []
+
+    vids_resp = service.videos().list(
+        part="statistics,contentDetails,snippet",
+        id=",".join(video_ids),
+    ).execute()
+
+    results = []
+    for v in vids_resp.get("items", []):
+        stats = v["statistics"]
+        views = int(stats.get("viewCount", 0))
+        likes = int(stats.get("likeCount", 0))
+        comments = int(stats.get("commentCount", 0))
+        duration_min = _parse_iso_duration_to_min(v["contentDetails"]["duration"])
+
+        if views < f.min_views:
+            continue
+        if not (f.duracao_min_min <= duration_min <= f.duracao_max_min):
+            continue
+
+        score = _calc_video_score(
+            views, likes, comments, duration_min,
+            canal_avg_views, config.nicho_keywords,
+            v["snippet"]["title"],
+        )
+
+        results.append(Video(
+            video_id=v["id"],
+            titulo=v["snippet"]["title"],
+            canal_fonte=source_label,
+            views=views,
+            data_pub=v["snippet"]["publishedAt"][:10],
+            duracao_min=round(duration_min, 1),
+            tipo=config.tipo_video_padrao,
+            score=score,
+            status=VideoStatus.CANDIDATO,
+        ))
+    return results
+
 def minerar_canal(config: CanalConfig, canal_avg_views: float = 100000) -> List[Video]:
     service = build("youtube", "v3", developerKey=get_settings().youtube_api_key)
     f = config.filtros_mineracao
     since = (datetime.utcnow() - timedelta(days=f.max_dias)).strftime("%Y-%m-%dT%H:%M:%SZ")
     videos = []
+    seen_ids: set = set()
 
-    for handle in config.canais_fonte:
-        try:
-            search_resp = service.search().list(
-                part="snippet",
-                q=handle.replace("@", ""),
-                type="video",
-                order="viewCount",
-                publishedAfter=since,
-                videoDuration="medium",
-                relevanceLanguage=config.idioma,
-                maxResults=10
-            ).execute()
-
-            video_ids = [i["id"]["videoId"] for i in search_resp.get("items", [])]
-            if not video_ids:
+    if config.canais_fonte:
+        # Busca por canais fonte configurados
+        for handle in config.canais_fonte:
+            try:
+                for v in _fetch_and_filter_videos(service, handle.replace("@", ""),
+                                                  handle, config, since, canal_avg_views):
+                    if v.video_id not in seen_ids:
+                        seen_ids.add(v.video_id)
+                        videos.append(v)
+            except Exception:
                 continue
-
-            vids_resp = service.videos().list(
-                part="statistics,contentDetails,snippet",
-                id=",".join(video_ids)
-            ).execute()
-
-            for v in vids_resp.get("items", []):
-                stats = v["statistics"]
-                views = int(stats.get("viewCount", 0))
-                likes = int(stats.get("likeCount", 0))
-                comments = int(stats.get("commentCount", 0))
-                duration_min = _parse_iso_duration_to_min(v["contentDetails"]["duration"])
-
-                if views < f.min_views:
-                    continue
-                if not (f.duracao_min_min <= duration_min <= f.duracao_max_min):
-                    continue
-
-                score = _calc_video_score(
-                    views, likes, comments, duration_min,
-                    canal_avg_views, config.nicho_keywords,
-                    v["snippet"]["title"]
-                )
-
-                videos.append(Video(
-                    video_id=v["id"],
-                    titulo=v["snippet"]["title"],
-                    canal_fonte=handle,
-                    views=views,
-                    data_pub=v["snippet"]["publishedAt"][:10],
-                    duracao_min=round(duration_min, 1),
-                    tipo=config.tipo_video_padrao,
-                    score=score,
-                    status=VideoStatus.CANDIDATO,
-                ))
+    else:
+        # Sem fontes: busca pelos keywords do nicho diretamente
+        query = " ".join(config.nicho_keywords)
+        try:
+            for v in _fetch_and_filter_videos(service, query, "nicho:" + config.nicho_keywords[0],
+                                              config, since, canal_avg_views):
+                if v.video_id not in seen_ids:
+                    seen_ids.add(v.video_id)
+                    videos.append(v)
         except Exception:
-            continue
+            pass
 
     videos.sort(key=lambda v: v.score, reverse=True)
     return videos

@@ -1,37 +1,75 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from app.auth import verify_token
 from app.services.channel_discovery import discover_channels
 from app.models.canal_candidato import CanalCandidato
+from app.config import get_settings
 
 router = APIRouter()
 
+class FiltrosDescoberta(BaseModel):
+    subscribers_min: int = 100000
+    subscribers_max: int = 3000000
+    avg_views_min: int = 50000
+    upload_freq_min: int = 2
+    avg_duration_min_min: float = 0
+    avg_duration_max_min: float = 60
+
 class DescobertaRequest(BaseModel):
-    estrategia: str = "categoria"
-    seed_channel: Optional[str] = None
     nicho: str = "personal finance"
+    seed_channel: Optional[str] = None
     idioma: str = "en"
-    filtros: dict = {
-        "subscribers_min": 100000,
-        "subscribers_max": 3000000,
-        "avg_views_min": 50000,
-        "upload_freq_min": 4,
-        "avg_duration_min_min": 8,
-        "avg_duration_max_min": 20,
-    }
+    periodo_dias: int = 90
+    ordem: str = "viewCount"
+    filtros: FiltrosDescoberta = FiltrosDescoberta()
     top_n: int = 20
 
 @router.post("/descobrir-canais", response_model=List[CanalCandidato])
 async def descobrir_canais(body: DescobertaRequest, _: str = Depends(verify_token)):
-    return discover_channels(
-        estrategia=body.estrategia,
-        nicho=body.nicho,
-        idioma=body.idioma,
-        filtros=body.filtros,
-        top_n=body.top_n,
-        seed_channel=body.seed_channel,
-    )
+    try:
+        return discover_channels(
+            nicho=body.nicho,
+            seed_channel=body.seed_channel,
+            idioma=body.idioma,
+            periodo_dias=body.periodo_dias,
+            ordem=body.ordem,
+            filtros=body.filtros.model_dump(),
+            top_n=body.top_n,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _get_db():
+    s = get_settings()
+    if s.supabase_url and (s.supabase_service_role_key or s.supabase_anon_key):
+        from app.services.supabase_db import SupabaseDatabase
+        return SupabaseDatabase()
+    from app.services.file_db import FileDatabase
+    return FileDatabase()
+
+
+class SalvarCanaisRequest(BaseModel):
+    canais: List[CanalCandidato]
+
+@router.post("/descobrir-canais/salvar/{canal_id}")
+async def salvar_canais_descobertos(
+    canal_id: str,
+    body: SalvarCanaisRequest,
+    _: str = Depends(verify_token),
+):
+    db = _get_db()
+    for c in body.canais:
+        db.salvar_candidato_canal(canal_id, c)
+    return {"salvos": len(body.canais)}
+
+
+@router.get("/descobrir-canais/salvos/{canal_id}", response_model=List[CanalCandidato])
+async def listar_canais_salvos(canal_id: str, _: str = Depends(verify_token)):
+    return _get_db().listar_candidatos_canal(canal_id)
 
 
 from app.services.vidiq_scraper import buscar_keywords_vidiq

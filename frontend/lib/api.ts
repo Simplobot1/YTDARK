@@ -42,8 +42,10 @@ export const keywordResearch = (canalId: string, nicho: string, idioma: string) 
 
 export const minerar = (canalId: string) =>
   request<{ minerados: number; videos: Video[] }>(`/canais/${canalId}/minerar`, { method: 'POST' })
-export const getCandidatos = (canalId: string) =>
-  request<Video[]>(`/canais/${canalId}/candidatos`)
+export const getCandidatos = (canalId: string, page = 1, limit = 20) =>
+  request<{ videos: Video[]; total: number; page: number; pages: number }>(
+    `/canais/${canalId}/candidatos?page=${page}&limit=${limit}`
+  )
 export const aprovarVideo = (canalId: string, videoId: string) =>
   request<{ ok: boolean }>(`/canais/${canalId}/aprovar/${videoId}`, { method: 'POST' })
 

@@ -18,14 +18,15 @@ export default function Dashboard() {
       setCanais(ids)
       const statsMap: typeof stats = {}
       for (const id of ids) {
-        const [candidatos, fila] = await Promise.all([
-          getCandidatos(id).catch(() => [] as { status: string }[]),
-          getFila(id).catch(() => [] as { status: string }[]),
+        const [candsRes, fila] = await Promise.all([
+          getCandidatos(id).catch(() => ({ videos: [], total: 0, page: 1, pages: 0 })),
+          getFila(id).catch(() => []),
         ])
+        const filaArr = Array.isArray(fila) ? fila : []
         statsMap[id] = {
-          candidatos: candidatos.filter(v => v.status === 'candidato').length,
-          emProducao: fila.length,
-          prontos: fila.filter(v => v.status === 'video_pronto').length,
+          candidatos: candsRes.total,
+          emProducao: filaArr.length,
+          prontos: filaArr.filter(v => v.status === 'video_pronto').length,
         }
       }
       setStats(statsMap)
