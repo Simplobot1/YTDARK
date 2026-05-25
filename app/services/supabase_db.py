@@ -15,6 +15,10 @@ def _client() -> Client:
     return create_client(s.supabase_url, key)
 
 
+# Campos válidos do model Video — usado para descartar colunas extras vindas do banco.
+_VIDEO_FIELDS = set(Video.model_fields.keys())
+
+
 def _video_to_row(canal_id: str, video: Video) -> dict:
     d = video.model_dump()
     d["canal_id"] = canal_id
@@ -23,9 +27,16 @@ def _video_to_row(canal_id: str, video: Video) -> dict:
 
 
 def _row_to_video(r: dict) -> Video:
-    r = {k: v for k, v in r.items() if k not in ("id", "canal_id", "created_at")}
-    r["status"] = VideoStatus(r.get("status", "candidato"))
-    return Video(**r)
+    # Filtra apenas campos conhecidos do model Video
+    clean = {k: v for k, v in r.items() if k in _VIDEO_FIELDS}
+    if "status" in clean and clean["status"]:
+        try:
+            clean["status"] = VideoStatus(clean["status"])
+        except ValueError:
+            clean["status"] = VideoStatus.CANDIDATO
+    else:
+        clean["status"] = VideoStatus.CANDIDATO
+    return Video(**clean)
 
 
 class SupabaseDatabase(DatabaseInterface):
@@ -55,6 +66,14 @@ class SupabaseDatabase(DatabaseInterface):
         row.pop("canal_id", None)
         _client().table("videos").update(row).eq("canal_id", canal_id).eq(
             "video_id", video.video_id
+        ).execute()
+
+    def atualizar_campos(self, canal_id: str, video_id: str, **campos) -> None:
+        """Update parcial: apenas os campos passados. Use para atualizações granulares."""
+        if not campos:
+            return
+        _client().table("videos").update(campos).eq("canal_id", canal_id).eq(
+            "video_id", video_id
         ).execute()
 
     def buscar_video(self, canal_id: str, video_id: str) -> Optional[Video]:

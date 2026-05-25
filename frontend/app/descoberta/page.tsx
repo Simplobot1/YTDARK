@@ -73,10 +73,11 @@ export default function DescobertaPage() {
 
   useEffect(() => {
     getCanais().then(r => {
-      setCanais(r.canais)
-      if (!canalDestino && r.canais.length === 1) setCanalDestino(r.canais[0])
+      const ids = r.canais.map(c => c.id)
+      setCanais(ids)
+      if (!canalDestino && ids.length === 1) setCanalDestino(ids[0])
     }).catch(() => {})
-  }, [])
+  }, [canalDestino])
 
   // Persiste estado no localStorage sempre que muda
   useEffect(() => {
@@ -238,7 +239,7 @@ export default function DescobertaPage() {
                   )
                 }
                 {!canalDestino && (
-                  <span className="text-amber-400 text-xs">Selecione para que "+ Adicionar" salve automaticamente</span>
+                  <span className="text-amber-400 text-xs">Selecione para que &quot;+ Adicionar&quot; salve automaticamente</span>
                 )}
               </div>
             )}

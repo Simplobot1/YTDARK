@@ -13,13 +13,16 @@ export interface Video {
   score: number
   status: VideoStatus
   transcricao?: string
-  analise?: Record<string, unknown>
-  roteiro_path?: string
+  prompt_titulo?: string
+  estrutura_video?: string
+  estrutura_thumb?: string
+  roteiro?: string
   audio_path?: string
   thumbnail_path?: string
   video_path?: string
-  drive_link?: string
   yt_link?: string
+  descricao_seo?: string
+  tags_seo?: string[]
 }
 
 export interface MetricasCanal {
@@ -77,4 +80,17 @@ export interface Keyword {
   volume: number
   competition: number
   seo_score: number
+}
+
+export interface RemodelarStatus {
+  video_id: string
+  status: VideoStatus
+  titulo: string
+  tem_transcricao: boolean
+  tem_analise: boolean
+  tem_roteiro: boolean
+  tem_audio: boolean
+  tem_thumbnail: boolean
+  tem_video: boolean
+  tem_yt_link: boolean
 }

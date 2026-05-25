@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
 class VideoStatus(str, Enum):
     CANDIDATO = "candidato"
@@ -23,10 +23,13 @@ class Video(BaseModel):
     score: float = 0.0
     status: VideoStatus = VideoStatus.CANDIDATO
     transcricao: Optional[str] = None
-    analise: Optional[dict] = None
-    roteiro_path: Optional[str] = None
+    prompt_titulo: Optional[str] = None
+    estrutura_video: Optional[str] = None
+    estrutura_thumb: Optional[str] = None
+    roteiro: Optional[str] = None
     audio_path: Optional[str] = None
     thumbnail_path: Optional[str] = None
     video_path: Optional[str] = None
-    drive_link: Optional[str] = None
     yt_link: Optional[str] = None
+    descricao_seo: Optional[str] = None
+    tags_seo: Optional[List[str]] = None

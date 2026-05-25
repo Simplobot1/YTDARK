@@ -3,10 +3,11 @@ from pydantic import BaseModel
 from typing import Optional, List
 from app.auth import verify_token
 from app.services.channel_discovery import discover_channels
+from app.services.supabase_db import SupabaseDatabase
 from app.models.canal_candidato import CanalCandidato
-from app.config import get_settings
 
 router = APIRouter()
+
 
 class FiltrosDescoberta(BaseModel):
     subscribers_min: int = 100000
@@ -16,6 +17,7 @@ class FiltrosDescoberta(BaseModel):
     avg_duration_min_min: float = 0
     avg_duration_max_min: float = 60
 
+
 class DescobertaRequest(BaseModel):
     nicho: str = "personal finance"
     seed_channel: Optional[str] = None
@@ -24,6 +26,7 @@ class DescobertaRequest(BaseModel):
     ordem: str = "viewCount"
     filtros: FiltrosDescoberta = FiltrosDescoberta()
     top_n: int = 20
+
 
 @router.post("/descobrir-canais", response_model=List[CanalCandidato])
 async def descobrir_canais(body: DescobertaRequest, _: str = Depends(verify_token)):
@@ -43,17 +46,13 @@ async def descobrir_canais(body: DescobertaRequest, _: str = Depends(verify_toke
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def _get_db():
-    s = get_settings()
-    if s.supabase_url and (s.supabase_service_role_key or s.supabase_anon_key):
-        from app.services.supabase_db import SupabaseDatabase
-        return SupabaseDatabase()
-    from app.services.file_db import FileDatabase
-    return FileDatabase()
+def _get_db() -> SupabaseDatabase:
+    return SupabaseDatabase()
 
 
 class SalvarCanaisRequest(BaseModel):
     canais: List[CanalCandidato]
+
 
 @router.post("/descobrir-canais/salvar/{canal_id}")
 async def salvar_canais_descobertos(
@@ -70,15 +69,3 @@ async def salvar_canais_descobertos(
 @router.get("/descobrir-canais/salvos/{canal_id}", response_model=List[CanalCandidato])
 async def listar_canais_salvos(canal_id: str, _: str = Depends(verify_token)):
     return _get_db().listar_candidatos_canal(canal_id)
-
-
-from app.services.vidiq_scraper import buscar_keywords_vidiq
-
-class KeywordsRequest(BaseModel):
-    nicho: str
-    idioma: str = "en"
-
-@router.post("/canais/{canal_id}/keywords")
-async def keyword_research(canal_id: str, body: KeywordsRequest, _: str = Depends(verify_token)):
-    keywords = await buscar_keywords_vidiq(body.nicho, body.idioma)
-    return {"canal_id": canal_id, "nicho": body.nicho, "keywords": keywords}

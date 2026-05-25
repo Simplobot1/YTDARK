@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from app.config import get_settings
 
 
@@ -19,18 +20,31 @@ except ImportError:  # pragma: no cover - exercised only in environments without
 TEMP_DIR = "temp"
 
 
-def gerar_narracao(texto: str, video_id: str) -> str:
-    """Gera narração em MP3 com ElevenLabs. Retorna caminho do arquivo."""
+def gerar_narracao(texto: str, video_id: str, voice_id: Optional[str] = None) -> str:
+    """Gera narração em MP3 com ElevenLabs. Retorna caminho do arquivo.
+
+    Args:
+        texto: Roteiro a narrar.
+        video_id: Identificador (pode ser "canal_id/video_id/narration" para nested paths).
+        voice_id: ID da voz no ElevenLabs. Default: settings.elevenlabs_voice_id_default.
+    """
     settings = get_settings()
+    voz = (
+        voice_id
+        or settings.elevenlabs_voice_id
+        or settings.elevenlabs_voice_id_default
+        or "2EiwWnXFnvU5JabPnv8n"
+    )
     client = ElevenLabs(api_key=settings.elevenlabs_api_key)
     narration_only = _extract_narration(texto)
     audio = client.generate(
         text=narration_only,
-        voice=settings.elevenlabs_voice_id or "Rachel",
+        voice=voz,
         model="eleven_multilingual_v2",
     )
-    os.makedirs(TEMP_DIR, exist_ok=True)
+    # Suporta video_id com subpath (ex: "canal/video/narration")
     dest = os.path.join(TEMP_DIR, f"{video_id}.mp3")
+    os.makedirs(os.path.dirname(dest) or TEMP_DIR, exist_ok=True)
     with open(dest, "wb") as f:
         for chunk in audio:
             f.write(chunk)
@@ -38,7 +52,7 @@ def gerar_narracao(texto: str, video_id: str) -> str:
 
 
 def _extract_narration(roteiro: str) -> str:
-    """Remove marcações de estrutura, mantém só o texto narrado."""
+    """Remove marcações de estrutura ([HOOK], etc), mantém só o texto narrado."""
     lines = []
     for line in roteiro.split("\n"):
         stripped = line.strip()

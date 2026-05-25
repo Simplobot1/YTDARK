@@ -1,8 +1,9 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Video } from '@/lib/types'
-import { aprovarVideo, analisarVideo, produzirVideo, publicarVideo } from '@/lib/api'
+import { aprovarVideo } from '@/lib/api'
 
 interface Props {
   video: Video
@@ -11,24 +12,54 @@ interface Props {
 }
 
 export function PipelineActions({ video, canalId, onAction }: Props) {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
 
-  async function run(fn: () => Promise<unknown>) {
+  async function approve() {
     setLoading(true)
-    try { await fn(); onAction() }
-    catch (e: unknown) { alert(e instanceof Error ? e.message : 'Erro') }
-    finally { setLoading(false) }
+    try {
+      await aprovarVideo(canalId, video.video_id)
+      onAction()
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Erro')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  if (video.status === 'candidato')
-    return <Button size="sm" disabled={loading} onClick={() => run(() => aprovarVideo(canalId, video.video_id))}>Aprovar</Button>
-  if (video.status === 'aprovado')
-    return <Button size="sm" disabled={loading} onClick={() => run(() => analisarVideo(canalId, video.video_id))}>Analisar</Button>
-  if (video.status === 'analisado')
-    return <Button size="sm" disabled={loading} onClick={() => run(() => produzirVideo(canalId, video.video_id))}>Produzir</Button>
-  if (video.status === 'video_pronto')
-    return <Button size="sm" disabled={loading} onClick={() => run(() => publicarVideo(canalId, video.video_id))}>Publicar</Button>
-  if (video.status === 'publicado' && video.yt_link)
-    return <a href={video.yt_link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline">Ver no YouTube</a>
+  function remodelar() {
+    router.push(`/remodelar?canal=${encodeURIComponent(canalId)}&video=${encodeURIComponent(video.video_id)}`)
+  }
+
+  if (video.status === 'publicado' && video.yt_link) {
+    return (
+      <a
+        href={video.yt_link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs text-blue-400 hover:underline"
+      >
+        Ver no YouTube
+      </a>
+    )
+  }
+
+  // Para estados em progresso (analisado, roteiro_gerado, audio_gerado, video_pronto),
+  // continua no wizard de remodelação.
+  if (['candidato', 'aprovado', 'minerado', 'analisado', 'roteiro_gerado', 'audio_gerado', 'video_pronto'].includes(video.status)) {
+    return (
+      <div className="flex gap-2">
+        {video.status === 'candidato' && (
+          <Button size="sm" variant="outline" disabled={loading} onClick={approve}>
+            Aprovar
+          </Button>
+        )}
+        <Button size="sm" disabled={loading} onClick={remodelar}>
+          Remodelar →
+        </Button>
+      </div>
+    )
+  }
+
   return <span className="text-xs text-slate-500">Processando...</span>
 }
