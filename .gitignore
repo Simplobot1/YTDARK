@@ -15,3 +15,13 @@ dist/
 out/
 *.egg-info/
 .DS_Store
+canais/
+.claude/agent-memory/
+check_*.py
+deploy*.py
+setup_vps.py
+fix_credentials.py
+force_restart.py
+push_backend.py
+redeploy_stack.py
+test_login.py

@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     shotstack_env: str = "v1"
     jwt_secret: str = "dev-secret"
     users: str = "admin@email.com:admin123"
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
+    supabase_service_role_key: str = ""
 
     class Config:
         env_file = ".env"
