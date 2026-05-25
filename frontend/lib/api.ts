@@ -1,5 +1,5 @@
 import { getToken } from './auth'
-import type { Video, CanalCandidato, ChannelDNA, CanalConfig, Keyword } from './types'
+import type { Video, CanalCandidato, CanalInfo, ChannelDNA, CanalConfig, Keyword } from './types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -26,7 +26,7 @@ export const login = (email: string, senha: string) =>
     body: JSON.stringify({ email, senha }),
   })
 
-export const getCanais = () => request<{ canais: string[] }>('/canais/')
+export const getCanais = () => request<{ canais: CanalInfo[] }>('/canais/')
 export const getCanalConfig = (id: string) => request<CanalConfig>(`/canais/${id}/config`)
 export const getCanalDna = (id: string) => request<ChannelDNA>(`/canais/${id}/dna`)
 export const updateCanalDna = (id: string, dna: ChannelDNA) =>

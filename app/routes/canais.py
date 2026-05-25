@@ -11,7 +11,15 @@ class AddFonteRequest(BaseModel):
 
 @router.get("/")
 async def get_canais():
-    return {"canais": listar_canais()}
+    ids = listar_canais()
+    canais = []
+    for cid in ids:
+        try:
+            cfg = get_config(cid)
+            canais.append({"id": cid, "handle": cfg.youtube_handle, "nicho": cfg.nicho_keywords[:2]})
+        except Exception:
+            canais.append({"id": cid, "handle": cid, "nicho": []})
+    return {"canais": canais}
 
 @router.get("/{canal_id}/fontes")
 async def listar_fontes(canal_id: str, _: str = Depends(verify_token)):

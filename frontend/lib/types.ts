@@ -66,6 +66,12 @@ export interface CanalConfig {
   google_drive_folder_id: string
 }
 
+export interface CanalInfo {
+  id: string
+  handle: string
+  nicho: string[]
+}
+
 export interface Keyword {
   termo: string
   volume: number

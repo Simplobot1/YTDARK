@@ -94,14 +94,19 @@ function CanalContent() {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="text-slate-400 hover:text-white">&#8592; Dashboard</Link>
-            <h1 className="text-2xl font-bold text-white">{canal}</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-white">{canal}</h1>
+              <p className="text-slate-500 text-xs mt-0.5">Seu canal de saída — os vídeos remodelados vão aqui</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Link href={`/canal/dna?id=${canal}`}>
-              <Button variant="outline" size="sm">Editar DNA</Button>
+              <Button variant="outline" size="sm" title="Configure o estilo visual, tom de voz e estrutura dos vídeos">
+                Estilo do Canal
+              </Button>
             </Link>
             <Button onClick={handleMinerar} disabled={minerando} size="sm">
-              {minerando ? 'Minerando...' : 'Minerar Vídeos'}
+              {minerando ? 'Buscando vídeos...' : 'Buscar Vídeos para Remodelar'}
             </Button>
           </div>
         </div>
