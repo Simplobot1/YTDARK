@@ -25,3 +25,4 @@ force_restart.py
 push_backend.py
 redeploy_stack.py
 test_login.py
+supabase/.temp/
