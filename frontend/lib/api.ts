@@ -34,6 +34,16 @@ export const updateCanalDna = (id: string, dna: ChannelDNA) =>
 
 export const descobrirCanais = (body: object) =>
   request<CanalCandidato[]>('/descobrir-canais', { method: 'POST', body: JSON.stringify(body) })
+
+export const salvarCanaisDescobertos = (canalId: string, canais: CanalCandidato[]) =>
+  request<{ salvos: number }>(`/descobrir-canais/salvar/${canalId}`, {
+    method: 'POST',
+    body: JSON.stringify({ canais }),
+  })
+
+export const listarCanaisSalvos = (canalId: string) =>
+  request<CanalCandidato[]>(`/descobrir-canais/salvos/${canalId}`)
+
 export const keywordResearch = (canalId: string, nicho: string, idioma: string) =>
   request<{ keywords: Keyword[] }>(`/canais/${canalId}/keywords`, {
     method: 'POST',

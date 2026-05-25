@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { descobrirCanais } from '@/lib/api'
+import { descobrirCanais, getCanais, salvarCanaisDescobertos } from '@/lib/api'
 import { isAuthenticated } from '@/lib/auth'
 import { CanalCandidato } from '@/lib/types'
 import { CanalCandidatoRow } from '@/components/CanalCandidatoRow'
@@ -54,6 +54,19 @@ export default function DescobertaPage() {
   const [buscou, setBuscou] = useState(false)
   const [erro, setErro] = useState('')
 
+  // seletor de canal destino + persistência
+  const [canais, setCanais] = useState<string[]>([])
+  const [canalDestino, setCanalDestino] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [msgSalvo, setMsgSalvo] = useState('')
+
+  useEffect(() => {
+    getCanais().then(r => {
+      setCanais(r.canais)
+      if (r.canais.length === 1) setCanalDestino(r.canais[0])
+    }).catch(() => {})
+  }, [])
+
   async function buscar() {
     if (!nicho.trim() && !seed.trim()) {
       alert('Preencha o nicho ou um canal semente')
@@ -62,6 +75,7 @@ export default function DescobertaPage() {
     setLoading(true)
     setBuscou(false)
     setErro('')
+    setMsgSalvo('')
     try {
       const result = await descobrirCanais({
         nicho,
@@ -93,6 +107,25 @@ export default function DescobertaPage() {
     setCandidatos(prev => prev.map(c => c.handle === handle ? { ...c, adicionado: true } : c))
   }
 
+  const adicionados = candidatos.filter(c => c.adicionado)
+
+  async function salvarSelecionados() {
+    if (!canalDestino) {
+      alert('Selecione o canal destino antes de salvar')
+      return
+    }
+    setSalvando(true)
+    setMsgSalvo('')
+    try {
+      const r = await salvarCanaisDescobertos(canalDestino, adicionados)
+      setMsgSalvo(`${r.salvos} canais salvos em "${canalDestino}"`)
+    } catch (e: unknown) {
+      setMsgSalvo(`Erro ao salvar: ${e instanceof Error ? e.message : 'desconhecido'}`)
+    } finally {
+      setSalvando(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 p-8">
       <div className="max-w-5xl mx-auto">
@@ -105,7 +138,6 @@ export default function DescobertaPage() {
           <CardHeader><CardTitle className="text-white">Busca</CardTitle></CardHeader>
           <CardContent className="space-y-4">
 
-            {/* Linha 1: busca principal */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-slate-300">Nicho / Keywords</Label>
@@ -129,7 +161,6 @@ export default function DescobertaPage() {
               </div>
             </div>
 
-            {/* Linha 2: filtros de tempo e ordem */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <Label className="text-slate-300">Período de atividade</Label>
@@ -179,7 +210,6 @@ export default function DescobertaPage() {
               </div>
             </div>
 
-            {/* Linha 3: filtros de canal */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
                 <Label className="text-slate-300 text-xs">Min. Inscritos</Label>
@@ -227,9 +257,43 @@ export default function DescobertaPage() {
 
         {candidatos.length > 0 && (
           <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-x-auto">
-            <div className="p-4 border-b border-slate-800">
+            <div className="p-4 border-b border-slate-800 flex flex-col md:flex-row md:items-center gap-3 justify-between">
               <span className="text-slate-400 text-sm">{candidatos.length} canais encontrados</span>
+
+              {adicionados.length > 0 && (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-emerald-400 text-sm">{adicionados.length} selecionado(s)</span>
+                  {canais.length > 1 && (
+                    <select
+                      value={canalDestino}
+                      onChange={e => setCanalDestino(e.target.value)}
+                      className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-white text-sm"
+                    >
+                      <option value="">Selecionar canal...</option>
+                      {canais.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  )}
+                  {canais.length === 1 && (
+                    <span className="text-slate-400 text-xs">para: <strong className="text-white">{canalDestino}</strong></span>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={salvarSelecionados}
+                    disabled={salvando || !canalDestino}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                  >
+                    {salvando ? 'Salvando...' : `Salvar no Supabase`}
+                  </Button>
+                </div>
+              )}
             </div>
+
+            {msgSalvo && (
+              <div className={`px-4 py-2 text-sm border-b border-slate-800 ${msgSalvo.startsWith('Erro') ? 'text-red-400' : 'text-emerald-400'}`}>
+                {msgSalvo}
+              </div>
+            )}
+
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-800">
