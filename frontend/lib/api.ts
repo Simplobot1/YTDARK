@@ -32,6 +32,17 @@ export const getCanalDna = (id: string) => request<ChannelDNA>(`/canais/${id}/dn
 export const updateCanalDna = (id: string, dna: ChannelDNA) =>
   request<{ ok: boolean }>(`/canais/${id}/dna`, { method: 'PUT', body: JSON.stringify(dna) })
 
+export const listarFontes = (canalId: string) =>
+  request<{ fontes: string[] }>(`/canais/${canalId}/fontes`)
+export const adicionarFonte = (canalId: string, handle: string) =>
+  request<{ ok: boolean; fontes: string[] }>(`/canais/${canalId}/fontes`, {
+    method: 'POST', body: JSON.stringify({ handle }),
+  })
+export const removerFonte = (canalId: string, handle: string) =>
+  request<{ ok: boolean; fontes: string[] }>(`/canais/${canalId}/fontes/${encodeURIComponent(handle)}`, {
+    method: 'DELETE',
+  })
+
 export const descobrirCanais = (body: object) =>
   request<CanalCandidato[]>('/descobrir-canais', { method: 'POST', body: JSON.stringify(body) })
 

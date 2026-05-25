@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { descobrirCanais, getCanais, salvarCanaisDescobertos } from '@/lib/api'
+import { descobrirCanais, getCanais, salvarCanaisDescobertos, adicionarFonte } from '@/lib/api'
 import { isAuthenticated } from '@/lib/auth'
 import { CanalCandidato } from '@/lib/types'
 import { CanalCandidatoRow } from '@/components/CanalCandidatoRow'
@@ -122,16 +122,18 @@ export default function DescobertaPage() {
       showToast('Selecione o canal destino primeiro')
       return
     }
-    // Marca localmente
-    setCandidatos(prev => prev.map(c => c.handle === handle ? { ...c, adicionado: true } : c))
-    // Salva imediatamente no Supabase
     const canal = candidatos.find(c => c.handle === handle)
     if (!canal) return
+    // Marca localmente primeiro
+    setCandidatos(prev => prev.map(c => c.handle === handle ? { ...c, adicionado: true } : c))
     try {
+      // 1. Salva no Supabase (canais_candidatos)
       await salvarCanaisDescobertos(canalDestino, [{ ...canal, adicionado: true }])
-      showToast(`"${handle}" salvo em "${canalDestino}"`)
-    } catch {
-      showToast(`Erro ao salvar "${handle}"`)
+      // 2. Adiciona como canal fonte no config do canal (usado pelo minerador)
+      await adicionarFonte(canalDestino, handle)
+      showToast(`"${handle}" adicionado como fonte de "${canalDestino}"`)
+    } catch (e: unknown) {
+      showToast(`Erro ao adicionar "${handle}": ${e instanceof Error ? e.message : 'desconhecido'}`)
     }
   }
 
@@ -267,9 +269,17 @@ export default function DescobertaPage() {
               <span className="text-slate-400 text-sm">
                 {candidatos.length} canais encontrados
                 {adicionados.length > 0 && (
-                  <span className="ml-2 text-emerald-400">· {adicionados.length} salvos</span>
+                  <span className="ml-2 text-emerald-400">· {adicionados.length} adicionados como fonte</span>
                 )}
               </span>
+              {adicionados.length > 0 && canalDestino && (
+                <Link
+                  href={`/canal?id=${canalDestino}`}
+                  className="text-sm bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md transition-colors"
+                >
+                  Ir para {canalDestino} e minerar →
+                </Link>
+              )}
             </div>
 
             <table className="w-full">
