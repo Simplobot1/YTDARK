@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { descobrirCanais, getCanais, salvarCanaisDescobertos } from '@/lib/api'
 import { isAuthenticated } from '@/lib/auth'
@@ -18,14 +18,12 @@ const PERIODOS = [
   { label: 'Últimos 6 meses', value: 180 },
   { label: 'Último ano', value: 365 },
 ]
-
 const ORDENS = [
   { label: 'Mais vistos', value: 'viewCount' },
   { label: 'Mais relevantes', value: 'relevance' },
   { label: 'Mais recentes', value: 'date' },
   { label: 'Melhor avaliados', value: 'rating' },
 ]
-
 const IDIOMAS = [
   { label: 'Inglês', value: 'en' },
   { label: 'Português', value: 'pt' },
@@ -33,39 +31,64 @@ const IDIOMAS = [
   { label: 'Qualquer', value: '' },
 ]
 
+const LS_KEY = 'ytdark_descoberta'
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function saveState(data: object) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)) } catch {}
+}
+
 export default function DescobertaPage() {
   const router = useRouter()
   useEffect(() => { if (!isAuthenticated()) router.push('/login') }, [router])
 
-  const [nicho, setNicho] = useState('personal finance')
-  const [seed, setSeed] = useState('')
-  const [idioma, setIdioma] = useState('en')
-  const [periodo, setPeriodo] = useState(90)
-  const [ordem, setOrdem] = useState('viewCount')
-  const [minViews, setMinViews] = useState(0)
-  const [minSubs, setMinSubs] = useState(10000)
-  const [maxSubs, setMaxSubs] = useState(10000000)
-  const [minFreq, setMinFreq] = useState(0)
-  const [minDuracao, setMinDuracao] = useState(0)
-  const [maxDuracao, setMaxDuracao] = useState(60)
-  const [topN, setTopN] = useState(20)
-  const [loading, setLoading] = useState(false)
-  const [candidatos, setCandidatos] = useState<CanalCandidato[]>([])
-  const [buscou, setBuscou] = useState(false)
-  const [erro, setErro] = useState('')
+  const saved = useRef(loadState())
 
-  // seletor de canal destino + persistência
+  const [nicho, setNicho] = useState(saved.current?.nicho ?? 'personal finance')
+  const [seed, setSeed] = useState(saved.current?.seed ?? '')
+  const [idioma, setIdioma] = useState(saved.current?.idioma ?? 'en')
+  const [periodo, setPeriodo] = useState(saved.current?.periodo ?? 90)
+  const [ordem, setOrdem] = useState(saved.current?.ordem ?? 'viewCount')
+  const [minViews, setMinViews] = useState(saved.current?.minViews ?? 0)
+  const [minSubs, setMinSubs] = useState(saved.current?.minSubs ?? 10000)
+  const [maxSubs, setMaxSubs] = useState(saved.current?.maxSubs ?? 10000000)
+  const [minFreq, setMinFreq] = useState(saved.current?.minFreq ?? 0)
+  const [minDuracao, setMinDuracao] = useState(saved.current?.minDuracao ?? 0)
+  const [maxDuracao, setMaxDuracao] = useState(saved.current?.maxDuracao ?? 60)
+  const [topN, setTopN] = useState(saved.current?.topN ?? 20)
+  const [candidatos, setCandidatos] = useState<CanalCandidato[]>(saved.current?.candidatos ?? [])
+  const [buscou, setBuscou] = useState(!!(saved.current?.candidatos?.length))
+  const [canalDestino, setCanalDestino] = useState(saved.current?.canalDestino ?? '')
+
+  const [loading, setLoading] = useState(false)
+  const [erro, setErro] = useState('')
   const [canais, setCanais] = useState<string[]>([])
-  const [canalDestino, setCanalDestino] = useState('')
-  const [salvando, setSalvando] = useState(false)
-  const [msgSalvo, setMsgSalvo] = useState('')
+  const [toast, setToast] = useState('')
 
   useEffect(() => {
     getCanais().then(r => {
       setCanais(r.canais)
-      if (r.canais.length === 1) setCanalDestino(r.canais[0])
+      if (!canalDestino && r.canais.length === 1) setCanalDestino(r.canais[0])
     }).catch(() => {})
   }, [])
+
+  // Persiste estado no localStorage sempre que muda
+  useEffect(() => {
+    saveState({ nicho, seed, idioma, periodo, ordem, minViews, minSubs, maxSubs,
+      minFreq, minDuracao, maxDuracao, topN, candidatos, canalDestino })
+  }, [nicho, seed, idioma, periodo, ordem, minViews, minSubs, maxSubs,
+      minFreq, minDuracao, maxDuracao, topN, candidatos, canalDestino])
+
+  function showToast(msg: string) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3500)
+  }
 
   async function buscar() {
     if (!nicho.trim() && !seed.trim()) {
@@ -75,22 +98,13 @@ export default function DescobertaPage() {
     setLoading(true)
     setBuscou(false)
     setErro('')
-    setMsgSalvo('')
     try {
       const result = await descobrirCanais({
-        nicho,
-        seed_channel: seed.trim() || undefined,
-        idioma,
-        periodo_dias: periodo,
-        ordem,
-        filtros: {
-          subscribers_min: minSubs,
-          subscribers_max: maxSubs,
-          avg_views_min: minViews,
-          upload_freq_min: minFreq,
-          avg_duration_min_min: minDuracao,
-          avg_duration_max_min: maxDuracao,
-        },
+        nicho, seed_channel: seed.trim() || undefined,
+        idioma, periodo_dias: periodo, ordem,
+        filtros: { subscribers_min: minSubs, subscribers_max: maxSubs,
+          avg_views_min: minViews, upload_freq_min: minFreq,
+          avg_duration_min_min: minDuracao, avg_duration_max_min: maxDuracao },
         top_n: topN,
       })
       setCandidatos(result)
@@ -103,32 +117,37 @@ export default function DescobertaPage() {
     }
   }
 
-  function handleAdicionar(handle: string) {
+  async function handleAdicionar(handle: string) {
+    if (!canalDestino) {
+      showToast('Selecione o canal destino primeiro')
+      return
+    }
+    // Marca localmente
     setCandidatos(prev => prev.map(c => c.handle === handle ? { ...c, adicionado: true } : c))
+    // Salva imediatamente no Supabase
+    const canal = candidatos.find(c => c.handle === handle)
+    if (!canal) return
+    try {
+      await salvarCanaisDescobertos(canalDestino, [{ ...canal, adicionado: true }])
+      showToast(`"${handle}" salvo em "${canalDestino}"`)
+    } catch {
+      showToast(`Erro ao salvar "${handle}"`)
+    }
   }
 
   const adicionados = candidatos.filter(c => c.adicionado)
 
-  async function salvarSelecionados() {
-    if (!canalDestino) {
-      alert('Selecione o canal destino antes de salvar')
-      return
-    }
-    setSalvando(true)
-    setMsgSalvo('')
-    try {
-      const r = await salvarCanaisDescobertos(canalDestino, adicionados)
-      setMsgSalvo(`${r.salvos} canais salvos em "${canalDestino}"`)
-    } catch (e: unknown) {
-      setMsgSalvo(`Erro ao salvar: ${e instanceof Error ? e.message : 'desconhecido'}`)
-    } finally {
-      setSalvando(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-slate-950 p-8">
       <div className="max-w-5xl mx-auto">
+
+        {/* Toast */}
+        {toast && (
+          <div className="fixed top-4 right-4 z-50 bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-lg text-sm animate-in fade-in slide-in-from-top-2">
+            {toast}
+          </div>
+        )}
+
         <div className="flex items-center gap-4 mb-6">
           <Link href="/dashboard" className="text-slate-400 hover:text-white">&#8592; Dashboard</Link>
           <h1 className="text-2xl font-bold text-white">Descobrir Canais Fonte</h1>
@@ -141,22 +160,16 @@ export default function DescobertaPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-slate-300">Nicho / Keywords</Label>
-                <Input
-                  value={nicho}
-                  onChange={e => setNicho(e.target.value)}
+                <Input value={nicho} onChange={e => setNicho(e.target.value)}
                   placeholder="ex: personal finance, investing"
-                  className="bg-slate-800 border-slate-700 mt-1"
-                />
+                  className="bg-slate-800 border-slate-700 mt-1" />
                 <p className="text-slate-500 text-xs mt-1">Busca canais que falam sobre esse assunto</p>
               </div>
               <div>
                 <Label className="text-slate-300">Canal Similar a (opcional)</Label>
-                <Input
-                  value={seed}
-                  onChange={e => setSeed(e.target.value)}
+                <Input value={seed} onChange={e => setSeed(e.target.value)}
                   placeholder="ex: @CasuallyFinance"
-                  className="bg-slate-800 border-slate-700 mt-1"
-                />
+                  className="bg-slate-800 border-slate-700 mt-1" />
                 <p className="text-slate-500 text-xs mt-1">Encontra canais parecidos com este</p>
               </div>
             </div>
@@ -164,88 +177,81 @@ export default function DescobertaPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <Label className="text-slate-300">Período de atividade</Label>
-                <select
-                  value={periodo}
-                  onChange={e => setPeriodo(+e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm"
-                >
-                  {PERIODOS.map(p => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
-                  ))}
+                <select value={periodo} onChange={e => setPeriodo(+e.target.value)}
+                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm">
+                  {PERIODOS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>
               </div>
               <div>
                 <Label className="text-slate-300">Ordenar por</Label>
-                <select
-                  value={ordem}
-                  onChange={e => setOrdem(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm"
-                >
-                  {ORDENS.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
+                <select value={ordem} onChange={e => setOrdem(e.target.value)}
+                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm">
+                  {ORDENS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
                 <Label className="text-slate-300">Idioma</Label>
-                <select
-                  value={idioma}
-                  onChange={e => setIdioma(e.target.value)}
-                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm"
-                >
-                  {IDIOMAS.map(i => (
-                    <option key={i.value} value={i.value}>{i.label}</option>
-                  ))}
+                <select value={idioma} onChange={e => setIdioma(e.target.value)}
+                  className="w-full mt-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm">
+                  {IDIOMAS.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
                 </select>
               </div>
               <div>
                 <Label className="text-slate-300">Qtd. Resultados</Label>
-                <Input
-                  type="number"
-                  value={topN}
-                  onChange={e => setTopN(+e.target.value)}
-                  min={5} max={50}
-                  className="bg-slate-800 border-slate-700 mt-1"
-                />
+                <Input type="number" value={topN} onChange={e => setTopN(+e.target.value)}
+                  min={5} max={50} className="bg-slate-800 border-slate-700 mt-1" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div>
-                <Label className="text-slate-300 text-xs">Min. Inscritos</Label>
-                <Input type="number" value={minSubs} onChange={e => setMinSubs(+e.target.value)}
-                  className="bg-slate-800 border-slate-700 mt-1 text-sm" />
-              </div>
-              <div>
-                <Label className="text-slate-300 text-xs">Max. Inscritos</Label>
-                <Input type="number" value={maxSubs} onChange={e => setMaxSubs(+e.target.value)}
-                  className="bg-slate-800 border-slate-700 mt-1 text-sm" />
-              </div>
-              <div>
-                <Label className="text-slate-300 text-xs">Min. Views Médio</Label>
-                <Input type="number" value={minViews} onChange={e => setMinViews(+e.target.value)}
-                  className="bg-slate-800 border-slate-700 mt-1 text-sm" />
-              </div>
-              <div>
-                <Label className="text-slate-300 text-xs">Min. Uploads/período</Label>
-                <Input type="number" value={minFreq} onChange={e => setMinFreq(+e.target.value)}
-                  className="bg-slate-800 border-slate-700 mt-1 text-sm" />
-              </div>
-              <div>
-                <Label className="text-slate-300 text-xs">Duração min (min)</Label>
-                <Input type="number" value={minDuracao} onChange={e => setMinDuracao(+e.target.value)}
-                  className="bg-slate-800 border-slate-700 mt-1 text-sm" />
-              </div>
-              <div>
-                <Label className="text-slate-300 text-xs">Duração max (min)</Label>
-                <Input type="number" value={maxDuracao} onChange={e => setMaxDuracao(+e.target.value)}
-                  className="bg-slate-800 border-slate-700 mt-1 text-sm" />
-              </div>
+              {[
+                ['Min. Inscritos', minSubs, setMinSubs],
+                ['Max. Inscritos', maxSubs, setMaxSubs],
+                ['Min. Views Médio', minViews, setMinViews],
+                ['Min. Uploads/período', minFreq, setMinFreq],
+                ['Duração min (min)', minDuracao, setMinDuracao],
+                ['Duração max (min)', maxDuracao, setMaxDuracao],
+              ].map(([label, val, setter]) => (
+                <div key={label as string}>
+                  <Label className="text-slate-300 text-xs">{label as string}</Label>
+                  <Input type="number" value={val as number}
+                    onChange={e => (setter as (v: number) => void)(+e.target.value)}
+                    className="bg-slate-800 border-slate-700 mt-1 text-sm" />
+                </div>
+              ))}
             </div>
 
-            <Button onClick={buscar} disabled={loading} className="w-full md:w-auto">
-              {loading ? 'Buscando...' : 'Buscar Canais'}
-            </Button>
+            {/* Canal destino — selecionado ANTES de buscar */}
+            {canais.length > 0 && (
+              <div className="flex items-center gap-3 pt-1">
+                <Label className="text-slate-300 text-sm whitespace-nowrap">Canal destino:</Label>
+                {canais.length === 1
+                  ? <span className="text-white text-sm font-medium">{canalDestino}</span>
+                  : (
+                    <select value={canalDestino} onChange={e => setCanalDestino(e.target.value)}
+                      className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-white text-sm">
+                      <option value="">Selecionar...</option>
+                      {canais.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  )
+                }
+                {!canalDestino && (
+                  <span className="text-amber-400 text-xs">Selecione para que "+ Adicionar" salve automaticamente</span>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3 flex-wrap">
+              <Button onClick={buscar} disabled={loading}>
+                {loading ? 'Buscando...' : 'Buscar Canais'}
+              </Button>
+              {candidatos.length > 0 && (
+                <Button variant="outline" onClick={() => { setCandidatos([]); setBuscou(false); saveState({}) }}
+                  className="border-slate-700 text-slate-400 hover:text-white">
+                  Limpar resultados
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -257,42 +263,14 @@ export default function DescobertaPage() {
 
         {candidatos.length > 0 && (
           <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-x-auto">
-            <div className="p-4 border-b border-slate-800 flex flex-col md:flex-row md:items-center gap-3 justify-between">
-              <span className="text-slate-400 text-sm">{candidatos.length} canais encontrados</span>
-
-              {adicionados.length > 0 && (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-emerald-400 text-sm">{adicionados.length} selecionado(s)</span>
-                  {canais.length > 1 && (
-                    <select
-                      value={canalDestino}
-                      onChange={e => setCanalDestino(e.target.value)}
-                      className="bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-white text-sm"
-                    >
-                      <option value="">Selecionar canal...</option>
-                      {canais.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  )}
-                  {canais.length === 1 && (
-                    <span className="text-slate-400 text-xs">para: <strong className="text-white">{canalDestino}</strong></span>
-                  )}
-                  <Button
-                    size="sm"
-                    onClick={salvarSelecionados}
-                    disabled={salvando || !canalDestino}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white"
-                  >
-                    {salvando ? 'Salvando...' : `Salvar no Supabase`}
-                  </Button>
-                </div>
-              )}
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-slate-400 text-sm">
+                {candidatos.length} canais encontrados
+                {adicionados.length > 0 && (
+                  <span className="ml-2 text-emerald-400">· {adicionados.length} salvos</span>
+                )}
+              </span>
             </div>
-
-            {msgSalvo && (
-              <div className={`px-4 py-2 text-sm border-b border-slate-800 ${msgSalvo.startsWith('Erro') ? 'text-red-400' : 'text-emerald-400'}`}>
-                {msgSalvo}
-              </div>
-            )}
 
             <table className="w-full">
               <thead>
