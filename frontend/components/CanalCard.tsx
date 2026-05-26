@@ -16,7 +16,7 @@ export function CanalCard({ canal, prontos, emProducao, candidatos }: Props) {
       <Card className="bg-slate-900 border-slate-800 hover:border-slate-500 cursor-pointer transition-colors">
         <CardHeader className="pb-2">
           <CardTitle className="text-white text-lg">{canal.handle}</CardTitle>
-          <p className="text-slate-500 text-xs">{canal.nicho.join(' · ') || 'Sem nicho definido'}</p>
+          <p className="text-slate-500 text-xs">{(canal.nicho ?? []).join(' · ') || 'Sem nicho definido'}</p>
         </CardHeader>
         <CardContent className="flex gap-2 flex-wrap pt-0">
           {prontos > 0 && <Badge className="bg-green-700">{prontos} prontos</Badge>}
