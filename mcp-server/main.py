@@ -6,7 +6,6 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 from tools.downloader import download_video, get_channel_related
-from tools.transcriber import transcribe
 from tools.frames import extract_frames
 
 server = Server("ytdark-tools")
@@ -61,22 +60,6 @@ async def list_tools() -> list[Tool]:
                 "required": ["video_path"],
             },
         ),
-        Tool(
-            name="transcribe",
-            description="Transcreve áudio de um vídeo usando Whisper local. Retorna texto completo.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "video_path": {"type": "string", "description": "Caminho local do vídeo"},
-                    "language": {
-                        "type": "string",
-                        "description": "Idioma do áudio (default: en)",
-                        "default": "en",
-                    },
-                },
-                "required": ["video_path"],
-            },
-        ),
     ]
 
 
@@ -100,13 +83,6 @@ async def call_tool(name: str, arguments: dict):
                 arguments.get("n_frames", 10),
             )
             return [TextContent(type="text", text=json.dumps({"frames": paths}))]
-
-        elif name == "transcribe":
-            text = transcribe(
-                arguments["video_path"],
-                arguments.get("language", "en"),
-            )
-            return [TextContent(type="text", text=json.dumps({"transcript": text}))]
 
         else:
             raise ValueError(f"Tool desconhecida: {name}")
