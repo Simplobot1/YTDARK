@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
 # Backup da configuração do Paperclip para o Supabase Storage (bucket: backups).
 #
-# O que entra:  instances/default/{db,companies,data,secrets,workspaces,telemetry}
-#               + secrets/ da raiz
-# O que fica de fora: projects/ (~900MB de repos clonados, reconstruíveis),
-#               bin/, bgutil-* (reinstaláveis), logs/
+# Estratégia:
+#   1. pg_dumpall do postgres embutido (dump lógico consistente) via container
+#      descartável postgres:18-alpine plugado no namespace de rede do Paperclip.
+#      Credenciais: paperclip/paperclip (default upstream, hardcoded em
+#      server/src/index.ts — o postgres só é alcançável de dentro do container).
+#   2. tar do resto da config: companies, data, secrets, workspaces, telemetry.
+#      Fica de fora: db/ (substituído pelo dump), projects/ (~900MB de repos
+#      clonados, reconstruíveis), logs/, bin/, bgutil-* (reinstaláveis).
+#   3. Criptografia AES-256 (openssl, pbkdf2) ANTES do upload — nenhuma
+#      credencial sai da VPS em texto claro.
+#   4. Upload em chunks de 45MB (limite do Supabase Storage) + retenção.
 #
-# Segurança: o tar é criptografado com AES-256 (openssl) ANTES do upload —
-# nenhuma credencial sai da VPS em texto claro. A passphrase fica em
-# /etc/ytdark-backup.env (BACKUP_PASSPHRASE). GUARDE UMA CÓPIA desse arquivo
-# fora da VPS: sem a passphrase o backup é irrecuperável.
+# GUARDE UMA CÓPIA de /etc/ytdark-backup.env fora da VPS:
+# sem a BACKUP_PASSPHRASE o backup é irrecuperável.
 #
-# O blob criptografado é dividido em chunks de 45MB (limite do Supabase Storage).
 # Restore:
 #   cat paperclip-<stamp>.tar.gz.enc.part* > backup.tar.gz.enc
 #   openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE \
-#     -in backup.tar.gz.enc | tar xzf - -C /opt/paperclip-data
-#   (com o container do Paperclip parado)
+#     -in backup.tar.gz.enc | tar xzf - -C /tmp/restore
+#   # config: copiar /tmp/restore/instances/... sobre /opt/paperclip-data
+#   # banco:  psql -f /tmp/restore/db-dump.sql (no postgres novo, via mesmo método)
 #
 # Env file (chmod 600): /etc/ytdark-backup.env
 #   SUPABASE_URL=https://xxxx.supabase.co
@@ -28,6 +33,7 @@ ENV_FILE="${ENV_FILE:-/etc/ytdark-backup.env}"
 DATA_DIR="${DATA_DIR:-/opt/paperclip-data}"
 BUCKET="backups"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
+PG_PORT="${PG_PORT:-54329}"
 
 . "$ENV_FILE"
 : "${SUPABASE_URL:?faltou SUPABASE_URL em $ENV_FILE}"
@@ -39,14 +45,25 @@ STAMP="$(date +%Y%m%d-%H%M)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-echo "[backup] $(date '+%F %T') — empacotando e criptografando config do Paperclip"
+PAPERCLIP_CID="$(docker ps -q -f name=paperclip | head -1)"
+[ -n "$PAPERCLIP_CID" ] || { echo "[backup] container do paperclip não encontrado"; exit 1; }
+
+echo "[backup] $(date '+%F %T') — pg_dumpall do postgres embutido (porta ${PG_PORT})"
+docker run --rm --network "container:${PAPERCLIP_CID}" \
+  -e PGPASSWORD=paperclip postgres:18-alpine \
+  pg_dumpall -h 127.0.0.1 -p "$PG_PORT" -U paperclip > "$WORK/db-dump.sql"
+echo "[backup] dump: $(du -h "$WORK/db-dump.sql" | cut -f1)"
+
+echo "[backup] empacotando config + dump e criptografando"
 tar czf - -C "$DATA_DIR" \
+  --warning=no-file-changed \
   --exclude='instances/default/projects' \
   --exclude='instances/default/logs' \
+  --exclude='instances/default/db' \
   --exclude='bin' \
   --exclude='bgutil-provider' \
   --exclude='bgutil-ytdlp-pot-provider' \
-  instances secrets |
+  instances secrets -C "$WORK" db-dump.sql |
   openssl enc -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE \
     -out "$WORK/paperclip-${STAMP}.tar.gz.enc"
 
