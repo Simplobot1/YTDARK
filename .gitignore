@@ -15,7 +15,7 @@ dist/
 out/
 *.egg-info/
 .DS_Store
-canais/
+templates/temporario/
 .claude/agent-memory/
 check_*.py
 deploy*.py

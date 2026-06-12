@@ -2,7 +2,7 @@
 
 ## Acesso
 
-- **URL:** http://178.156.134.29:3100
+- **URL:** `http://<VPS_HOST>:3100` (IP real em `.env` → `VPS_HOST`)
 - **Login:** conta criada no primeiro acesso
 
 ---
@@ -13,9 +13,7 @@
 **Goal (mission):**
 
 ```
-You are the autonomous production system for the YouTube channel mofmoney.
-Your mission is to find underrated personal finance channels in English, mine their best-performing videos, analyze what makes them work visually and narratively, produce similar videos adapted for the mofmoney style, and publish 4 videos per week consistently.
-You operate fully autonomously except for two human approval gates: (1) approving video candidates before download and (2) reviewing the final video before publishing.
+You are the autonomous production system for the YouTube channel mofmoney. Your mission is to find underrated personal finance channels in English, mine their best-performing videos, analyze what makes them work visually and narratively, produce similar videos adapted for the mofmoney style, and publish 4 videos per week consistently. You operate fully autonomously except for two human approval gates: (1) approving video candidates before download and (2) reviewing the final video before publishing. Always respond to the operator in Portuguese. Produce all YouTube content (scripts, titles, descriptions, tags) in English.
 ```
 
 ---
@@ -27,9 +25,9 @@ Adicionar em **Settings → Secrets**:
 | Key | Valor | Onde pegar |
 |-----|-------|-----------|
 | `ANTHROPIC_API_KEY` | sua chave Claude | console.anthropic.com |
-| `OPENAI_API_KEY` | `sk-proj-jiloss...` (ver .env) | platform.openai.com |
-| `YOUTUBE_API_KEY` | `AIzaSyAUTYc...` (ver .env) | Google Cloud Console |
-| `SUPABASE_URL` | `https://gddywawuzytndrfxhcwk.supabase.co` | Supabase dashboard |
+| `OPENAI_API_KEY` | ver `.env` | platform.openai.com |
+| `YOUTUBE_API_KEY` | ver `.env` | Google Cloud Console |
+| `SUPABASE_URL` | ver `.env` | Supabase dashboard |
 | `SUPABASE_KEY` | service_role key (ver .env) | Supabase → Settings → API |
 | `ELEVENLABS_API_KEY` | a definir | elevenlabs.io |
 | `ELEVENLABS_VOICE_ID` | a definir | após clonar voz |
@@ -54,8 +52,8 @@ Adicionar em **Settings → Secrets**:
 ## 4. MCP Server — Supabase (oficial)
 
 Usar o MCP oficial do Supabase.  
-**Project ref:** `gddywawuzytndrfxhcwk`  
-**URL:** `https://gddywawuzytndrfxhcwk.supabase.co`
+**Project ref:** ver `.env` (`SUPABASE_URL`)  
+**URL:** ver `.env` (`SUPABASE_URL`)
 
 ---
 
@@ -123,7 +121,7 @@ Update Supabase with published status and YouTube URL.
 
 ## 6. Schema do Banco (Supabase)
 
-**Projeto:** `gddywawuzytndrfxhcwk` (sa-east-1)  
+**Projeto:** ver `.env` → `SUPABASE_URL` (região sa-east-1)  
 **Migrations aplicadas:**
 - `20260525000001_initial_schema.sql` — tabelas base
 - `20260525000002_remodelacao_fields.sql` — campos de remodelação
